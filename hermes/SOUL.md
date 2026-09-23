@@ -1,195 +1,95 @@
-# h-dashboard Git Workflow
+# h-dashboard Development Instructions
 
-## Repository Model
+## Project
 
-The canonical upstream repository is:
+The main project is:
+
+`h-dashboard`
+
+Canonical upstream repository:
 
 `https://github.com/asgarimehdi/h-dashboard`
 
-Each Hermes server has its own fork/repository and its own dedicated working branch.
+Each server has its own fork/repository and its own dedicated working branch.
 
-The server startup workflow already:
+The server startup workflow already clones the correct repository, configures Git remotes, and checks out the correct branch.
 
-* clones the correct repository
-* configures the Git remotes
-* checks out the correct server-specific branch
+**Never hardcode the fork URL or server-specific branch name.**
 
-Never hardcode the fork URL or server-specific branch name.
-
-Always inspect and use the Git configuration that already exists on the server.
+Always use the existing Git configuration of the current server.
 
 ---
 
-## Current Branch Is the Only Development Branch
+# Session Initialization
 
-The branch that is checked out when Hermes starts is the server's dedicated working branch.
+Whenever a new session starts and the user is working on `h-dashboard`:
 
-For example, if the current branch is:
-
-```bash
-kimya
-```
-
-then all normal development must remain on:
-
-```text
-kimya
-```
-
-and all normal commits must be pushed only to:
-
-```text
-origin/kimya
-```
-
-Another server must independently push only to its own current branch.
-
-### Absolute rule
-
-**NORMAL WORK MUST ONLY BE PUSHED TO THE CURRENT CHECKED-OUT BRANCH.**
-
-Never push normal development commits to:
-
-```text
-origin/beta
-```
-
-Never push normal development commits to another server's branch.
-
-Never push normal development commits to any branch other than the current checked-out branch.
-
----
-
-## Beta Is Read/Synchronization Only
-
-`beta` is a synchronization/source branch.
-
-Hermes may:
-
-* fetch `beta`
-* read `beta`
-* compare the current branch with `beta`
-* merge/rebase/cherry-pick changes from `beta` into the current branch when appropriate
-* use `beta` as the source for synchronization
-
-Hermes must **NOT push development changes to beta**.
-
-In particular, do NOT execute:
-
-```bash
-git push origin beta
-```
-
-as part of normal development.
-
-Do not update `origin/beta` with the current branch's commits.
-
-The current server branch is the destination of development work.
-
----
-
-## Session Initialization
-
-At the beginning of a session:
+1. Go to the existing local repository:
 
 ```bash
 cd h-dashboard
-
-git remote -v
-
-git branch --show-current
-
-git status
 ```
 
-Determine the current checked-out branch.
-
-Then synchronize the current branch with the appropriate `beta` source according to the existing Git configuration.
-
-The synchronization direction is:
-
-```text
-beta
-  ↓
-current server branch
-```
-
-NOT:
-
-```text
-current server branch
-  ↓
-beta
-```
-
-After synchronization, remain on the current server branch.
-
-Do not switch to `beta` for normal development.
-
----
-
-## Normal Work
-
-During normal development:
-
-1. Stay on the current server-specific branch.
-2. Make changes only on that branch.
-3. Test/verify the changes.
-4. Commit the changes.
-5. Push the commit only to the current server-specific remote branch.
-
-Before pushing, verify:
+2. Inspect the existing Git configuration:
 
 ```bash
+git remote -v
 git branch --show-current
 git status
-git log -1 --oneline
 ```
 
-The push destination must correspond to the current checked-out branch.
+3. Do not clone the repository again.
 
-For example:
+4. Do not modify existing Git remotes.
 
-```text
-current branch: kimya
-push destination: origin/kimya
+5. Do not guess or hardcode the current server's branch name.
+
+6. Do not switch branches unless explicitly instructed.
+
+7. Synchronize the canonical upstream `beta` branch with this server's fork according to the existing Git remote configuration.
+
+8. Synchronize the current server-specific working branch from the fork's `beta` branch.
+
+9. Push the synchronized current branch to its existing remote.
+
+The exact remote names must be determined from:
+
+```bash
+git remote -v
 ```
 
-Never:
-
-```text
-origin/beta
-```
-
-unless the user explicitly orders a beta push.
+Do not assume that `origin` or `upstream` has a specific meaning without checking.
 
 ---
 
-## Push Safety Rule
+# Normal Development Workflow
 
-Before every `git push`, verify the destination.
+After session initialization:
 
-If the destination is:
+* Always work on the current server-specific branch.
+* Never switch to another branch unless explicitly instructed.
+* All code changes must be made on the current branch.
+* When work is complete, commit the changes to the current branch.
+* Push the current branch to its existing remote.
+* Do not push normal development work directly to `beta`.
+* Do not modify the repository's remote configuration.
+* Do not create another fork.
+* Do not clone another copy of the repository.
 
-```text
-beta
+Before committing:
+
+```bash
+git status
+git diff
 ```
 
-STOP.
+Create clear and meaningful commits.
 
-Do not push.
-
-Only push to `beta` if the user explicitly says to push to beta.
-
-If the destination is another server's branch, STOP.
-
-Do not push.
-
-If the destination is the current checked-out branch, proceed.
+After committing, push the current branch to its configured remote.
 
 ---
 
-## Pull Requests
+# Pull Requests
 
 When the user says:
 
@@ -197,9 +97,7 @@ When the user says:
 
 create a Pull Request from the current server-specific branch to:
 
-```text
-beta
-```
+`beta`
 
 of the canonical repository:
 
@@ -207,111 +105,95 @@ of the canonical repository:
 
 Use GitHub MCP when available.
 
-Creating a PR does NOT mean pushing to `beta`.
-
-The normal workflow is:
-
-```text
-current server branch
-        │
-        │ push
-        ▼
-server fork / current branch
-        │
-        │ PR
-        ▼
-canonical repository / beta
-```
-
-Do not merge the PR unless the user explicitly asks for the merge.
-
----
-
-## No Automatic Beta Push
-
-Under no circumstances should Hermes automatically do this after completing work:
-
-```bash
-git push origin beta
-```
-
-The completion of a task means:
-
-```text
-modify
-  ↓
-test
-  ↓
-commit
-  ↓
-push current branch only
-```
-
-It does NOT mean:
-
-```text
-modify
-  ↓
-commit
-  ↓
-push current branch
-  ↓
-push beta
-```
-
----
-
-## Git Final Check
-
-Before reporting the task as completed, verify:
-
-```bash
-git branch --show-current
-git status
-git log -1 --oneline
-git remote -v
-```
-
-Report the actual branch that was pushed.
-
-Never claim that a PR contains a commit unless the PR/source branch relationship has actually been verified.
+Do not merge the Pull Request unless the user explicitly asks for the merge.
 
 ---
 
 # Project Instructions
 
-Before development work:
+Before doing development work in `h-dashboard`:
 
-1. Read `AGENTS.md`.
-2. Follow all instructions in `AGENTS.md`.
-3. Keep its instructions in context throughout the task.
+1. Find `AGENTS.md`.
+2. Read it carefully.
+3. Follow all instructions in `AGENTS.md`.
+4. Treat `AGENTS.md` as authoritative project instructions.
+5. Keep its instructions in context throughout the task.
+
+Do not skip reading `AGENTS.md`.
 
 ---
 
 # Required Tools
 
-Use these tools whenever relevant and available:
+For `h-dashboard` development, use these tools whenever relevant:
 
 * Laravel Boost
 * Context7
 * GitHub MCP
 * CodeGraph MCP
-* `read-the-damn-docs`
 
-If a required tool is unavailable, diagnose and configure it when possible.
+Before substantial development work, verify that these tools are available.
 
-Never claim to have used a tool that was not actually available or used.
+If one is unavailable:
+
+1. Diagnose the problem.
+2. Configure or start it if possible.
+3. Verify that it is working.
+4. Use it once available.
+
+Do not silently pretend that an unavailable tool was used.
 
 ---
 
-# Documentation
+# CodeGraph
 
-Use `read-the-damn-docs` for applicable work.
+CodeGraph must be available for the `h-dashboard` project.
 
-If it is missing:
+If CodeGraph is not available:
+
+1. Diagnose its configuration.
+2. Fix or configure it when possible.
+3. Verify that it can access `h-dashboard`.
+4. Use CodeGraph when analyzing the project's structure, relationships, dependencies, or existing implementation.
+
+---
+
+# Documentation First
+
+The `read-the-damn-docs` skill must always be used for applicable work.
+
+It must be installed if it is missing:
 
 ```bash
 npx @agent-native/skills@latest add --skill read-the-damn-docs
 ```
 
-Read the relevant documentation before implementing or changing behavior.
+Do not require the user to remind you to use this skill.
+
+Before implementing or changing behavior:
+
+1. Read the relevant documentation.
+2. Prefer official/current documentation.
+3. Check the actual project implementation when necessary.
+4. Follow the documented/current API rather than relying on memory or assumptions.
+
+---
+
+# shadcn/improve
+
+The `shadcn/improve` skill should be available for applicable frontend/UI work.
+
+If it is missing, install/configure it before using it.
+
+---
+
+# General Rules
+
+* Follow the user's explicit instructions for the current task.
+* A newer explicit user instruction overrides these persistent instructions for that specific task.
+* Do not ask the user to repeat these instructions at the beginning of every session.
+* Do not invent project structure, APIs, configuration, or tool availability.
+* Inspect the existing project and configuration before making assumptions.
+* Preserve existing project conventions unless the user explicitly requests a change.
+* Prefer small, focused changes over unnecessary refactoring.
+* Verify changes before committing and pushing.
